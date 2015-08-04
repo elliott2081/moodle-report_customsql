@@ -216,10 +216,10 @@ function report_customsql_capability_options() {
 
 function report_customsql_runable_options($type = null) {
     if ($type === 'manual') {
-        return array('manual' => get_string('manual', 'report_customsql'));
+        return array('manual' => get_string('manually', 'report_customsql'));
     }
-    return array('manual' => get_string('manual', 'report_customsql'),
-                 'daily' => get_string('automaticallydaily', 'report_customsql'),
+    return array('manual' => get_string('manually', 'report_customsql'),
+                 'daily' => get_string('daily', 'report_customsql'),
                  'weekly' => get_string('automaticallyweekly', 'report_customsql'),
                  'monthly' => get_string('automaticallymonthly', 'report_customsql')
     );
@@ -249,63 +249,57 @@ function report_customsql_contains_bad_word($string) {
     return preg_match('/\b('.implode('|', report_customsql_bad_words_list()).')\b/i', $string);
 }
 
+function report_customsql_log_action($action, $relativeurl, $id) {
+    global $CFG;
+    add_to_log(0, 'admin', $action.' query',
+               '../report/customsql/'.$relativeurl, $id);
+}
+
 function report_customsql_log_delete($id) {
-    $event = \report_customsql\event\query_deleted::create(
-            array('objectid' => $id, 'context' => context_system::instance()));
-    $event->trigger();
+    report_customsql_log_action('delete', 'index.php', $id);
 }
 
 function report_customsql_log_edit($id) {
-    $event = \report_customsql\event\query_edited::create(
-            array('objectid' => $id, 'context' => context_system::instance()));
-    $event->trigger();
+    report_customsql_log_action('edit', 'view.php?id='.$id, $id);
 }
 
 function report_customsql_log_view($id) {
-    $event = \report_customsql\event\query_viewed::create(
-            array('objectid' => $id, 'context' => context_system::instance()));
-    $event->trigger();
+    report_customsql_log_action('view', 'view.php?id='.$id, $id);
 }
 
-/**
- * Returns all reports for a given type sorted by report 'displaname'
- * @param int $categoryid
- * @param string $type, type of report (manual, daily, weekly or monthly)
- */
-function report_customsql_get_reports_for($categoryid, $type) {
-    global $DB;
-    return $DB->get_records('report_customsql_queries',
-        array('runable' => $type, 'categoryid' => $categoryid), 'displayname');
-}
+function report_customsql_print_reports($reports,$courseid =  null) {
+    global $CFG, $OUTPUT;
 
-/**
- * display the rports
- * @param object $reports, the result of DB query
- * @param string $type, type of report (manual, daily, weekly or monthly)
- */
-function report_customsql_print_reports_for($reports, $type) {
-    global $OUTPUT;
+    // DWE Edited By David Elliott on 27-4-2015
+    // to view assigned reports to teachers
+    // check admin or not - start
 
-    if (empty($reports)) {
-        return;
-    }
-
-    if (!empty($type)) {
-        $help = html_writer::tag('span', $OUTPUT->help_icon($type . 'header', 'report_customsql'));
-        echo $OUTPUT->heading(get_string($type . 'header', 'report_customsql') . $help, 3);
-    }
-
-    $context = context_system::instance();
-    $canedit = has_capability('report/customsql:definequeries', $context);
-    $capabilities = report_customsql_capability_options();
+     if (is_siteadmin())
+	{
+		$context = context_system::instance();
+		$canedit = has_capability('report/customsql:definequeries', $context);
+		$capabilities = report_customsql_capability_options();
+	}
+	else
+	{
+		// Set context for teachers
+		$context = get_context_instance(CONTEXT_COURSE,$courseid);
+		$canedit = '';
+		$capabilities = '';
+	}
+	// End
     foreach ($reports as $report) {
+
         if (!empty($report->capability) && !has_capability($report->capability, $context)) {
             continue;
         }
 
         echo html_writer::start_tag('p');
+
+        // DWE - David Elliott - passing course id with the url for checking context of the teacher - 27-4-2015
+
         echo html_writer::tag('a', format_string($report->displayname),
-                              array('href' => report_customsql_url('view.php?id='.$report->id))).
+                              array('href' => report_customsql_url('view.php?id='.$report->id.'&cid='.$courseid))).
              ' '.report_customsql_time_note($report, 'span');
         if ($canedit) {
             $imgedit = html_writer::tag('img', '', array('src' => $OUTPUT->pix_url('t/edit'),
