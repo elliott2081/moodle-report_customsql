@@ -42,8 +42,8 @@ class report_customsql_edit_form extends moodleform {
                         'required', null, 'client');
         $mform->setType('displayname', PARAM_MULTILANG);
 
-        $mform->addElement('editor', 'description',
-                get_string('description', 'report_customsql'));
+        $mform->addElement('htmleditor', 'description', get_string('description',
+                                                                   'report_customsql'));
         $mform->setType('description', PARAM_RAW);
 
         $mform->addElement('textarea', 'querysql', get_string('querysql', 'report_customsql'),
@@ -113,6 +113,12 @@ class report_customsql_edit_form extends moodleform {
         $catdefault = isset($categoryoptions[1]) ? 1 : key($categoryoptions);
         $mform->setDefault('categoryid', $catdefault);
 
+        //->DWE  David Elliott on 27-4-2014 /
+        // Text Box to enter username of a teacher who has the capability to view this report
+        $mform->addElement('text', 'instructors', get_string('capableteacher', 'report_customsql'));
+        $mform->setType('instructors', PARAM_RAW);
+        //$mform->setDefault('instructors', REPORT_CUSTOMSQL_MAX_RECORDS);
+        // --> END 
         $this->add_action_buttons();
     }
 
