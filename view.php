@@ -35,7 +35,24 @@ if (!$report) {
 }
 
 require_login();
+// DWE by David Elliott on 27-04-2015
+// Checking the logged user is admin or not
+if (is_siteadmin())
+{
 $context = context_system::instance();
+}
+else
+{
+// Taking the context of teachers
+global $USER,$DB;
+$cid          = optional_param('cid', 1, PARAM_INT);
+$context = get_context_instance(CONTEXT_COURSE,$cid);
+//Checking the taking report query is assigned one or not.
+$manualreports = $DB->count_records('report_customsql_queries',
+array('id' => $id,'instructors' => $USER->username));
+if($manualreports==0)
+$context = context_system::instance();
+}
 if (!empty($report->capability)) {
     require_capability($report->capability, $context);
 }
@@ -55,6 +72,7 @@ if ($report->runable == 'manual') {
         $PAGE->set_url(new moodle_url('/report/customsql/view.php'));
         $PAGE->set_context($context);
         $PAGE->set_title($report->displayname);
+        $PAGE->navbar->add($report->displayname);
         $relativeurl = 'view.php?id=' . $id;
         $mform = new report_customsql_view_form(report_customsql_url($relativeurl), $queryparams);
 
@@ -73,8 +91,7 @@ if ($report->runable == 'manual') {
                 $report->queryparams = serialize($queryparams);
             }
         } else {
-
-            admin_externalpage_setup('report_customsql');
+           admin_externalpage_setup('report_customsql');
             $PAGE->set_title($report->displayname);
             $PAGE->navbar->add($report->displayname);
             echo $OUTPUT->header();
@@ -109,7 +126,13 @@ if ($report->runable == 'manual') {
 }
 
 // Start the page.
+// DWE Edited by David Elliott on 27-4-2015
+// Check the logged user is admin or not
+
+if (is_siteadmin())
 admin_externalpage_setup('report_customsql');
+else
+$PAGE->set_pagelayout('course');
 $PAGE->set_title($report->displayname);
 $PAGE->navbar->add($report->displayname);
 echo $OUTPUT->header();
@@ -169,11 +192,13 @@ if (is_null($csvtimestamp)) {
                                                   REPORT_CUSTOMSQL_MAX_RECORDS),
                                                   array('class' => 'admin_note'));
         }
+        // DWE Edited by David Elliott on 28-4-2015
+        //Passing course id as parameter to check context for teachers
         echo report_customsql_time_note($report, 'p').
              html_writer::start_tag('p').
              html_writer::tag('a', get_string('downloadthisreportascsv', 'report_customsql'),
                               array('href' => new moodle_url(report_customsql_url('download.php'),
-                              array('id' => $id, 'timestamp' => $csvtimestamp)))).
+                              array('id' => $id, 'timestamp' => $csvtimestamp,'cid'=>$cid)))).
              html_writer::end_tag('p');
 
         $archivetimes = report_customsql_get_archive_times($report);
@@ -225,8 +250,12 @@ if (has_capability('report/customsql:definequeries', $context)) {
 $imglarrow = html_writer::tag('img', '', array('src' => $OUTPUT->pix_url('t/collapsed_rtl'),
                               'class' => 'iconsmall',
                               'alt' => ''));
+
+// DWE Edited David Elliott on 28-4-2015
+// passing course id as parameter to check teacher context.
+
 echo html_writer::start_tag('p').
-     $OUTPUT->action_link(new moodle_url(report_customsql_url('index.php')), $imglarrow.
+     $OUTPUT->action_link(new moodle_url(report_customsql_url('index.php'),array('cid' => $cid)), $imglarrow.
                                          get_string('backtoreportlist', 'report_customsql')).
      html_writer::end_tag('p').
      $OUTPUT->footer();
