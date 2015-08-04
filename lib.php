@@ -72,3 +72,12 @@ function report_customsql_cron() {
         }
     }
 }
+
+// DWE David Elliott 27-4-2015
+// Function to display link on course navigation
+function report_customsql_extend_navigation_course($navigation, $course, $context) {
+    if (has_capability('report/customsql:view', $context)) {
+        $url = new moodle_url('/report/customsql/index.php', array('cid'=>$course->id));
+        $navigation->add(get_string('pluginname', 'report_customsql'), $url, navigation_node::TYPE_SETTING, null, null, new pix_icon('i/report', ''));
+    }
+}
